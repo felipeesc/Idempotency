@@ -81,6 +81,8 @@ idempotency-demo/
 │  ├─ main/
 │  │  ├─ java/com/example/idempotency/
 │  │  │  ├─ IdempotencyDemoApplication.java
+│  │  │  ├─ config/
+│  │  │  │  └─ JacksonConfig.java                 
 │  │  │  ├─ domain/IdempotencyRecord.java
 │  │  │  ├─ repo/IdempotencyRepository.java
 │  │  │  ├─ service/IdempotencyExecutor.java
@@ -89,7 +91,9 @@ idempotency-demo/
 │  │  │  └─ web/dto/{PaymentCommand.java,PaymentDto.java}
 │  │  └─ resources/
 │  │     ├─ application.yml
-│  │     └─ db/migration/V1__idempotency.sql
+│  │     └─ db/migration/
+│  │        ├─ V1__idempotency.sql
+│  │        └─ V2__resize_request_hash.sql       
 ```
 
 ---
