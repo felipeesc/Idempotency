@@ -18,10 +18,12 @@ import java.util.function.Supplier;
 @Service
 public class IdempotencyExecutor {
     private final IdempotencyRepository repo;
-    private final ObjectMapper mapper = new ObjectMapper();
 
+    private final ObjectMapper mapper;
 
-    public IdempotencyExecutor(IdempotencyRepository repo) { this.repo = repo; }
+    public IdempotencyExecutor(IdempotencyRepository repo, ObjectMapper mapper) { this.repo = repo;
+        this.mapper = mapper;
+    }
 
 
     @Transactional
@@ -31,13 +33,7 @@ public class IdempotencyExecutor {
 
         var existing = repo.findByKey(key).orElse(null);
         if (existing != null) {
-            if (!existing.getRequestHash().equals(reqHash)) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Idempotency-Key reutilizada com payload diferente");
-            }
-            if ("DONE".equals(existing.getStatus()) && existing.getResponseBody() != null) {
-                return deserialize(existing.getResponseBody(), responseType);
-            }
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Requisição idêntica em processamento");
+            return getReqHash(responseType, reqHash, existing);
         }
 
 
@@ -49,13 +45,7 @@ public class IdempotencyExecutor {
             repo.saveAndFlush(rec);
         } catch (DataIntegrityViolationException e) {
             var r = repo.findByKey(key).orElseThrow();
-            if (!r.getRequestHash().equals(reqHash)) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Idempotency-Key reutilizada com payload diferente");
-            }
-            if ("DONE".equals(r.getStatus()) && r.getResponseBody() != null) {
-                return deserialize(r.getResponseBody(), responseType);
-            }
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Requisição idêntica em processamento");
+            return getReqHash(responseType, reqHash, r);
         }
 
 
@@ -69,12 +59,26 @@ public class IdempotencyExecutor {
         return result;
     }
 
+    private <T> T getReqHash(Class<T> responseType, String reqHash, IdempotencyRecord r) {
+        if (!r.getRequestHash().equals(reqHash)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Idempotency-Key reutilizada com payload diferente");
+        }
+        if ("DONE".equals(r.getStatus()) && r.getResponseBody() != null) {
+            return deserialize(r.getResponseBody(), responseType);
+        }
+        throw new ResponseStatusException(HttpStatus.CONFLICT, "Requisição idêntica em processamento");
+    }
+
 
     private String json(Object o) {
         try { return mapper.writeValueAsString(o); } catch (Exception e) { throw new RuntimeException(e); }
     }
     private byte[] jsonBytes(Object o) {
-        try { return mapper.writeValueAsBytes(o); } catch (Exception e) { throw new RuntimeException(e); }
+        try {
+            return mapper.writeValueAsBytes(o);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
     private <T> T deserialize(byte[] data, Class<T> type) {
         try { return mapper.readValue(data, type); } catch (Exception e) { throw new RuntimeException(e); }

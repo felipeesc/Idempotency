@@ -113,6 +113,3 @@ idempotency-demo/
 
 ---
 
-## Limpeza (TTL)
-
-Agende um job para remover registros antigos (ex.: > 14 dias). Fonte da verdade = Postgres (pode adicionar cache Redis se desejar).

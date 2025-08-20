@@ -3,6 +3,8 @@ package com.idempotency.key.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 
 import java.time.Instant;
@@ -20,11 +22,13 @@ public class IdempotencyRecord {
     private String key;
 
 
-    @Column(nullable = false, length = 64)
+    @Column(name = "request_hash", nullable = false, columnDefinition = "char(64)")
     private String requestHash;
 
 
     @Lob
+    @JdbcTypeCode(SqlTypes.BINARY)
+    @Column(name = "response_body", columnDefinition = "bytea")
     private byte[] responseBody;
 
 
